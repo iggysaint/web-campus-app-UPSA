@@ -1,0 +1,8 @@
+{
+  "name": "MERIX UPSA",
+  "description": "A comprehensive campus management application for students and admins of MERIX UPSA, featuring hostel booking, class schedules, voting, and library resources.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
