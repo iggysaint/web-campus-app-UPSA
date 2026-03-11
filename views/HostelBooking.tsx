@@ -1,7 +1,6 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { getHostels } from "../services/hostelService";
 import { useNavigate } from 'react-router-dom';
-import { hostels } from '../mockData';
 import { ICONS } from '../constants';
 import { Gender, Hostel, User, HostelBooking } from '../types';
 
@@ -12,11 +11,22 @@ interface HostelBookingProps {
 
 const HostelBookingView: React.FC<HostelBookingProps> = ({ user, onBook }) => {
   const navigate = useNavigate();
+
   const [step, setStep] = useState(1);
+  const [hostels, setHostels] = useState<Hostel[]>([]);
   const [selectedGender, setSelectedGender] = useState<Gender>(user.gender);
   const [selectedHostel, setSelectedHostel] = useState<Hostel | null>(null);
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
+
+  useEffect(() => {
+    const loadHostels = async () => {
+      const data = await getHostels();
+      setHostels(data);
+    };
+
+    loadHostels();
+  }, []);
 
   const floors = useMemo(() => {
     if (!selectedHostel) return [];
@@ -36,10 +46,10 @@ const HostelBookingView: React.FC<HostelBookingProps> = ({ user, onBook }) => {
     const arr = [];
     const base = selectedFloor * 100;
     for (let i = 1; i <= 50; i++) {
-        const roomNum = base + i;
-        const lastTwo = roomNum % 100;
-        const type = (lastTwo === 15 || lastTwo === 44) ? '2-bed' : '4-bed';
-        arr.push({ number: roomNum, type });
+      const roomNum = base + i;
+      const lastTwo = roomNum % 100;
+      const type = (lastTwo === 15 || lastTwo === 44) ? '2-bed' : '4-bed';
+      arr.push({ number: roomNum, type });
     }
     return arr;
   }, [selectedFloor]);
@@ -71,8 +81,11 @@ const HostelBookingView: React.FC<HostelBookingProps> = ({ user, onBook }) => {
       status: 'pending',
       date: new Date().toISOString().split('T')[0]
     };
+
     onBook(newBooking);
+
     if (window.navigator.vibrate) window.navigator.vibrate(20);
+
     navigate('/profile');
   };
 
@@ -103,6 +116,7 @@ const HostelBookingView: React.FC<HostelBookingProps> = ({ user, onBook }) => {
             </div>
           </div>
         );
+
       case 2:
         return (
           <div className="flex flex-col gap-6">
@@ -128,63 +142,7 @@ const HostelBookingView: React.FC<HostelBookingProps> = ({ user, onBook }) => {
             </div>
           </div>
         );
-      case 3:
-        return (
-          <div className="flex flex-col gap-6">
-            <h2 className="text-xl font-bold text-slate-900">Select Floor</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-              {floors.map((f) => (
-                <button
-                  key={f.number}
-                  onClick={() => { setSelectedFloor(f.number); setSelectedRoom(null); }}
-                  className={`w-full p-5 rounded-3xl border-2 flex flex-col items-center justify-center transition-all hover:shadow-md ${
-                    selectedFloor === f.number ? 'border-[#0088CC] bg-blue-50/50' : 'border-slate-100 bg-white'
-                  }`}
-                >
-                  <span className="text-2xl font-black text-slate-900">{f.number}</span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Floor</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      case 4:
-        return (
-          <div className="flex flex-col gap-6">
-            <h2 className="text-xl font-bold text-slate-900">Room Number</h2>
-            <div className="grid grid-cols-4 lg:grid-cols-8 gap-3 max-h-[400px] overflow-y-auto no-scrollbar pb-4 pr-1">
-              {roomsOnFloor.map((r) => (
-                <button
-                  key={r.number}
-                  onClick={() => setSelectedRoom(r.number)}
-                  className={`py-3 rounded-2xl border flex flex-col items-center justify-center transition-all ${
-                    selectedRoom === r.number 
-                        ? 'bg-[#0088CC] border-[#0088CC] text-white shadow-lg' 
-                        : r.type === '2-bed' 
-                            ? 'bg-amber-50 border-amber-200' 
-                            : 'bg-white border-slate-100 text-slate-900'
-                  }`}
-                >
-                  <span className="text-sm font-bold">{r.number}</span>
-                  <span className={`text-[8px] font-black uppercase tracking-widest ${selectedRoom === r.number ? 'text-white/80' : 'text-slate-400'}`}>{r.type}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      case 5:
-        return (
-          <div className="flex flex-col gap-8">
-            <h2 className="text-xl font-bold text-slate-900">Confirm Booking</h2>
-            <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-slate-100">
-                <div className="divide-y divide-slate-50">
-                    <div className="flex justify-between p-6"><span className="text-slate-400">Hostel</span><span className="font-bold">{selectedHostel?.name}</span></div>
-                    <div className="flex justify-between p-6"><span className="text-slate-400">Room</span><span className="font-bold">Floor {selectedFloor}, #{selectedRoom}</span></div>
-                    <div className="flex justify-between p-6 bg-blue-50/30"><span className="text-slate-400 font-medium">Price</span><span className="font-black text-2xl text-[#0088CC]">GHS {currentPrice.toLocaleString()}</span></div>
-                </div>
-            </div>
-          </div>
-        );
+
       default:
         return null;
     }
@@ -193,20 +151,23 @@ const HostelBookingView: React.FC<HostelBookingProps> = ({ user, onBook }) => {
   return (
     <div className="flex-1 bg-slate-50 flex flex-col animate-fade-in relative h-full">
       <div className="p-6 pb-2 bg-white flex items-center justify-between">
-        <button onClick={handleBack} className="p-2 -ml-2 hover:bg-slate-50 rounded-full transition-colors"><ICONS.ChevronRight size={24} className="rotate-180 text-slate-600" /></button>
+        <button onClick={handleBack} className="p-2 -ml-2 hover:bg-slate-50 rounded-full transition-colors">
+          <ICONS.ChevronRight size={24} className="rotate-180 text-slate-600" />
+        </button>
+
         <h1 className="font-bold text-slate-900">Hostel Booking</h1>
+
         <div className="w-10"></div>
       </div>
-      <div className="px-10 py-6 bg-white flex items-center justify-between">
-        {[1, 2, 3, 4, 5].map((s) => (
-            <div key={s} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step >= s ? 'bg-[#0088CC] text-white shadow-lg shadow-blue-100' : 'bg-slate-100 text-slate-400'}`}>{step > s ? <ICONS.CheckCircle2 size={16} /> : s}</div>
-        ))}
+
+      <div className="flex-1 p-6 overflow-y-auto no-scrollbar">
+        {renderStep()}
       </div>
-      <div className="flex-1 p-6 overflow-y-auto no-scrollbar">{renderStep()}</div>
+
       <div className="p-6 bg-white border-t border-slate-100">
         <button
           onClick={step === 5 ? handleConfirm : handleNext}
-          className={`w-full py-4 rounded-2xl font-bold text-white transition-all bg-[#0088CC] shadow-lg shadow-blue-100 active:scale-95`}
+          className="w-full py-4 rounded-2xl font-bold text-white transition-all bg-[#0088CC] shadow-lg shadow-blue-100 active:scale-95"
         >
           {step === 5 ? 'Confirm & Book' : 'Continue'}
         </button>
